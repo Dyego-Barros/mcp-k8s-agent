@@ -2,11 +2,10 @@ from kubernetes import client, config
 
 # Carrega kubeconfig
 config.load_kube_config()
-# Inicializa as APIs
-v1 = client.CoreV1Api()
-#Carrega a API de Apps
-apps_v1 = client.AppsV1Api()
 
+v1 = client.CoreV1Api()
+
+apps_v1 = client.AppsV1Api()
 
 # Função para listar pods em um namespace específico
 async def listar_pods(namespace: str):
@@ -23,7 +22,7 @@ async def listar_pods(namespace: str):
         return f"Erro ao listar pods no namespace '{namespace}': {e}"
 
 #Função para listar deployments em um namespace específico
-async def listar_deployments(namespace: str):
+async def get_deployments(namespace: str):
     try:
         deployments = apps_v1.list_namespaced_deployment(namespace)
         # Formata a saída como string
@@ -38,7 +37,7 @@ async def listar_deployments(namespace: str):
         return f"Erro ao listar deployments no namespace '{namespace}': {e}"
     
 
-async def listar_services(namespace: str):
+async def get_services(namespace: str):
     try:
         services = v1.list_namespaced_service(namespace)
 
@@ -54,53 +53,15 @@ async def listar_services(namespace: str):
         
     except client.exceptions.ApiException as e:
         return f"Erro: Namespace '{namespace}' não encontrado. Detalhes: {e}"   
-
-async def describe_pod(namespace: str, pod_name: str) -> str:
-    """
-    Monta um describe de um pod em um namespace específico.    """
     
 
-    #pega o pod
-    pod = v1.read_namespaced_pod(name=pod_name, namespace=namespace)
 
-    lines = []
-    lines.append(f"Name:         {pod.metadata.name}")
-    lines.append(f"Namespace:    {pod.metadata.namespace}")
-    lines.append(f"Node:         {pod.spec.node_name}")
-    lines.append(f"Start Time:   {pod.status.start_time}")
-    lines.append(f"Status:       {pod.status.phase}")
-    lines.append(f"IP:           {pod.status.pod_ip}")
-    lines.append(f"Host IP:      {pod.status.host_ip}")
-
-    # Containers
-    lines.append("\nContainers:")
-    for c in pod.spec.containers:
-        lines.append(f"  {c.name}:")
-        lines.append(f"    Image:        {c.image}")
-        lines.append(f"    Ports:        {c.ports if c.ports else 'None'}")
-        lines.append(f"    Resources:    {c.resources if c.resources else 'None'}")
-
-    # Conditions
-    if pod.status.conditions:
-        lines.append("\nConditions:")
-        for cond in pod.status.conditions:
-            lines.append(
-                f"  Type={cond.type}  Status={cond.status}  "
-                f"Reason={cond.reason}  Message={cond.message}"
-            )
-
-    # Eventos
-    lines.append("\nEvents:")
-    events = v1.list_namespaced_event(
-        namespace=namespace,
-        field_selector=f"involvedObject.name={pod_name}"
-    )
-    if not events.items:
-        lines.append("  No events found.")
-    else:
-        for e in events.items:
-            lines.append(
-                f"  {e.last_timestamp}  {e.type}  {e.reason}  {e.message}"
-            )
-
-    return "\n".join(lines)
+if __name__ == "__main__":
+    import asyncio
+    namespace = "metallb-system"  # Exemplo de namespace
+    print("Pods:")
+    print(asyncio.run(listar_pods(namespace)))
+    print("\nDeployments:")
+    print(asyncio.run(get_deployments(namespace)))
+    print("\nServices:")
+    print(asyncio.run(get_services(namespace)))

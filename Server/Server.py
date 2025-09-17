@@ -9,7 +9,11 @@ async def  listar_pods(namespace: str) -> str:
 
 @mcp.tool
 async def listar_deployments(namespace: str) -> str:
-    return await k8s.get_deployments(namespace)
+    return await k8s.listar_deployments(namespace)
+
+@mcp.tool
+async def describe_pod(namespace: str, pod_name: str) -> str:
+    return await k8s.describe_pod(namespace, pod_name)
 
 
 if __name__ == "__main__":
